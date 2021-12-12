@@ -25,6 +25,9 @@ export class ArvatoComponent implements OnInit {
   public gistId6 = "c402b02a4b6bde70a02e4c7ef6de5836";
   public gistFileName6 = "AmendedObjecFactory.java";
 
+  public gistId7 = "3d8fbd908f677fe60123f925364eca66";
+  public gistFileName7 = "FinalSoapConfig.java";
+
   constructor() { }
 
   ngOnInit(): void {
