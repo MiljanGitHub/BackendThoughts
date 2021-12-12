@@ -1,0 +1,178 @@
+<!-- Text Header -->
+<header class="w-full container mx-auto">
+    <div class="flex flex-col items-center py-16">
+        <span class="font-bold text-gray-800 hover:text-gray-700 text-5xl" >
+           Consuming SOAP Web Service
+        </span>
+    </div>
+</header>
+
+
+<div class="container mx-auto flex flex-wrap py-2">
+
+    <!-- Post Section -->
+    <section class="w-full md:w-2/3 flex flex-col items-center px-3">
+
+        <article class="flex flex-col shadow my-4">
+            <!-- Article Image -->
+            <a href="#" class="hover:opacity-75">
+                <img src="https://source.unsplash.com/collection/1346951/1000x500?sig=1">
+            </a>
+            <div class="bg-white flex flex-col justify-start p-6">
+                <a href="#" class="text-blue-700 text-sm font-bold uppercase pb-4">Technology</a>
+                <div class="flex items-center">
+                    <img src="/assets/icons/spring_boot.png" class="h-10 object-cover rounded-full px-3" alt="">
+                    <img src="/assets/icons/soapui.png" class="h-10 object-cover rounded-full px-3" alt="">
+                    <img src="/assets/icons/wsdl.png" class="h-10 object-cover rounded-full px-3" alt="">
+                    <img src="/assets/icons/soap-services.png" class="h-10 object-cover rounded-full px-3" alt="">
+                </div>
+          
+       
+                <h1 class="text-2xl font-bold pb-3">Introduction</h1>
+                <p class="pb-3">
+                    Topic of this blog is a Jira User Story which gave me some headache in finding the right configuration for establishing connection with SOAP server.
+                    At that time, I had very limited experience of creating and consuming SOAP Web services but I was familiar with terms such as xsd schema, DOM and SAX parsers, XPath, xml namespaces and xml elements, Oxygen tool etc. Also I haven’t had any experience with using older Java EE which are based on SOAP web service. 
+                    Project can be found at <a class="" href="https://github.com/MiljanGitHub/DevelopersBlog/tree/main/soap-service/project" target="_blank"><u>GitHub</u></a>. 
+                    
+                     
+                </p>
+                <h1 class="text-2xl font-bold pb-3">Business domain problem</h1>
+                <p class="pb-3">Our client’s business process (logistics) generated about 150 different invoices and financial documents per week. Since it was a startup, this number was significant. Each invoices contained around 50 items of financial and administrative nature.
+                    Our client told us that in their country (Sweden) any accounting and financial operations are handled by a third part financial institution, Arvato. So the process of keeping tracks of payments, credit balance, fees, interests, different calculations, payment deadlines, remainders etc is handled by third party institution, we were supposed to deliver the required information and to use appropriate Web service. By delivering the required information, I mean to aggregate data from around 20 different tables, and process them to be acceptable for the web service.
+                    When problem was presented to me I was expecting a REST service, but to my surprise SOAP services pop up. At the moment none of my colleagues managed to establish connection with the server so I had to do a bit of hard work.
+                </p>
+                <p class="pb-3">
+                    
+                    <br>Entire problem can be summarized in three sections:
+                    <br>
+                    <br>1.  Generating Java stubs based on WSDL
+                    <br>2.	Communication with the test server
+                    <br>3.	Debugging of SOAP requests
+                   
+                
+                </p>
+                <h1 class="text-2xl font-bold pb-3">1.	Generating Java stubs based on WSDL</h1>
+                <p class="pb-3">Considering that we have a WSDL, I’ll use it as a guide to understand some of the service offerings and generate code for the client application. We’ll do it through SOAP UI and Maven plugin. In here we can acutally see all the services they have, quite a lot. These is, at least for me same thing like Swagger, but only with XML.
+                    <img src="/assets/soap-services/Arvato1.png" class="py-4" alt="">
+                    First we generate xsd files based on WSDL, so the Maven plugin can be able to generate Java stubs which third party can take as well as Object factory and method services which can be invoked.
+                    <img src="/assets/soap-services/Arvato2.png" class="py-4" alt="">
+                    I will not go into specifics how to do something in SOAP UI it can be googled quite easily.
+                    After they have been generated we can place those xsds in a resources folder within our Maven/Spring project and have maven-jaxb2-plugin do its magic.
+                    <img src="/assets/soap-services/Arvato3.png" class="py-4" alt="">
+                    If you do 'mvn generate sources' the plugin should be able to generate appropriate Java stubs at specified destination, but as usual things don't always go by the plan and I was getting following error:
+                    <app-ngx-gist-runkit [gistId]="gistId1" [gistFileName]="gistFileName1" ></app-ngx-gist-runkit>
+                    <br>
+                    <br>
+                    If you look at RunKit's gist lines 12 and 1, you will notice some interesting errors. So the wsimport tool (which is probably use by jax2b-maven-plugin to generate stubs) cannot build those Java classes, since there is a naming error.
+                    I was not lazy, so I opened the xsd file which is referred in the error, AFSService_1.xsd
+                    <br>
+                    <br>I did my research and what people are doing something called binding (<a href="https://docs.oracle.com/javase/tutorial/jaxb/intro/custom.html" target="_blank"><u>docs</u></a>). Essentially, it is possible to change the naming of a method, data type etc.
+                    
+                    The issue is mainly due to XJC having trouble with AccountInfo and AFSInvoiceAccountInfo
+                    When schemas contain similar looking element/type names, they can result in "Two declarations cause a collision in the ObjectFactory class" errors. To be more precise, for each of all types and many elements (exactly what elements get a factory and what doesn't is bit tricky to explain), XJC produces one method on the ObjectFactory class in the same package. The ObjectFactory class is created for each package that XJC generates some files into. The name of the method is derived from XML element/type names, and the error is reported if two elements/types try to generate the same method name.
+                    <br>
+                    <br>
+                    We need the following bindings.xjb (this was a bit tricky to write, lots of tries and errors) file in src/main/resources (will be picked up automatically by the maven-xjb2-plugin):
+                    <app-ngx-gist-runkit [gistId]="gistId2" [gistFileName]="gistFileName2" ></app-ngx-gist-runkit>
+                    After making some configurations in pomx.xml, Java stubse were generated under target folder:
+                    <img src="/assets/soap-services/Arvato4.png" class="py-4" alt="">
+                   
+
+
+                </p>
+                
+                
+                
+                <h1 class="text-2xl font-bold pb-3">2.	Communication with the test server</h1>
+                <p class="pb-3">
+
+                    Major part of this setup had alredy been done on some feature branch. Among other things there was a Java configuration for consuming SOAP services. The code looked like this:
+                    <app-ngx-gist-runkit [gistId]="gistId3" [gistFileName]="gistFileName3" ></app-ngx-gist-runkit>
+                    This code produced 301. This  <a class="" href="https://spring.io/guides/gs/consuming-web-service/" target="_blank"><u>tutorial</u></a> at the time didn't mention SoapActionCallback. After doing some research and 
+                    reading <a href="https://www.w3.org/TR/2000/NOTE-SOAP-20000508/#_Toc478383528" target="_blank"><u>docs</u></a> I realized that I'm not sending SOAPAction HTTP Header which led me to this same piece of code as in Spring's tutorial.
+                    We managed to establish connection with SOAP test server, for production it was just matter of setting the profile.
+                    <br>
+                    <br>
+                </p>
+
+                <h1 class="text-2xl font-bold pb-3">3.	Debugging of SOAP requests</h1>
+                <p class="pb-3">
+                    After writing couple of web services and started creating and updating object on the SOAP server, we noticed that some properties and objects are not being created nor updated on SOAP server.
+                    Next step was to actually see the xml body in the request itself. I managed to do it with following configuration:
+                    <app-ngx-gist-runkit [gistId]="gistId4" [gistFileName]="gistFileName4" ></app-ngx-gist-runkit>
+                    <br>
+                    <br>
+                    This was how successfull SOAP request was formed from SOAP UI.
+                    <img src="/assets/soap-services/Arvato5.png" class="py-4" alt="">
+                    What we have changed:
+                    <br>
+                    <br>
+                    If you take a look at JAXBElemet &lt;AFSUser&gt; and ObjectFactory’s method, createAFSUser(AFSUser value), for creating it you can see that this method is using some predefined constants:
+                    <app-ngx-gist-runkit [gistId]="gistId5" [gistFileName]="gistFileName5" ></app-ngx-gist-runkit>
+                    
+                    <br>
+                    <br>
+                    We noticed that above lines are causing the request to be malformed, so to overcome this issue, we did following:
+                    <app-ngx-gist-runkit [gistId]="gistId6" [gistFileName]="gistFileName6" ></app-ngx-gist-runkit>
+                    For some reasone every request sent from SOAP UI was successfull, so we used those tags sent in request and map them in ObjectFactory.
+                    <br>
+                    <br>
+                    
+                </p>
+                <h1 class="text-2xl font-bold pb-3">Conculsion</h1>
+                <p class="pb-3">
+                    We did this approach with almost every request. I'm aware that maybe this is not optimal solution, but it worked and since time was of essence for our client we
+                    decided to go this way but keeping it very well documented for any future changes. 
+                </p>
+                    
+            </div>
+        </article>
+
+
+        <div class="w-full flex flex-col text-center md:text-left md:flex-row shadow bg-white mt-10 mb-10 p-6">
+            <div class="w-full md:w-1/5 flex justify-center md:justify-start pb-4">
+                <img src="/assets/Miljan Puletic.jpg" class="rounded-full shadow h-32 w-32">
+            </div>
+            <div class="flex-1 flex flex-col justify-center md:justify-start">
+                <p class="font-semibold text-2xl">Miljan</p>
+                <p class="pt-2">I am a Java Software Developer with industry experience building scalable backend web applications.
+                    I specialize in Java language and Spring Boot framework. In spare time I write this blog and explore tips and tricks in microservice architecture, database management and design, API development as well as writing maintainable and testable Java code.</p>
+                <div class="flex items-center justify-center md:justify-start text-2xl no-underline text-blue-800 pt-4">
+                    <a class="pl-6" href="https://github.com/MiljanGitHub" target="_blank">
+                        <i class="fab fa-github"></i>
+                    </a>
+                    <a class="pl-6" href="mailto:miljan.puletic@gmail.com" target="_blank">
+                        <i class="fas fa-envelope-square"></i>
+                    </a>
+                    <a class="pl-6" href="https://www.linkedin.com/in/miljanpuletic" target="_blank">
+                        <i class="fab fa-linkedin"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Sidebar Section -->
+    <aside class="w-full md:w-1/3 flex flex-col items-center px-3">
+
+        <div class="w-full bg-white shadow flex flex-col my-4 p-6">
+            <p class="text-xl font-semibold pb-5">Intro</p>
+            <p class="pb-2">Simple configuration process on connecting and using third party SOAP web services in Spring Boot framework.  Project can be found at <a class="" href="https://github.com/MiljanGitHub/DevelopersBlog/tree/main/soap-service/project" target="_blank"><u>GitHub</u></a>.</p>
+            <div class="flex flex-wrap justify-center">
+                <span class="text-xs px-3 font-mediumtext-base bg-blue-800 shadow text-white rounded-full py-1.5">#java</span>
+                <span class="text-xs px-3 font-mediumtext-base bg-blue-800 shadow text-white rounded-full py-1.5">#springboot</span>
+                <span class="text-xs px-3 font-mediumtext-base bg-blue-800 shadow text-white rounded-full py-1.5">#maven-jaxb2-plugin</span>
+                <span class="text-xs px-3 font-mediumtext-base bg-blue-800 shadow text-white rounded-full py-1.5">#wsdl</span>
+                <span class="text-xs px-3 font-mediumtext-base bg-blue-800 shadow text-white rounded-full py-1.5">#soapui </span>
+            </div>
+        </div>
+    </aside>
+
+</div>
+
+<footer class="w-full border-t bg-white pb-12">
+    <div class="w-full container mx-auto flex flex-col items-center">
+        <div class="uppercase pb-6">&copy; backendthoughts.com</div>
+    </div>
+</footer>
