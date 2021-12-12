@@ -15,11 +15,11 @@
 
         <article class="flex flex-col shadow my-4">
             <!-- Article Image -->
-            <a href="#" class="hover:opacity-75">
+            <a  class="hover:opacity-75">
                 <img src="assets/soap-services/soap-services.png">
             </a>
             <div class="bg-white flex flex-col justify-start p-6">
-                <a href="#" class="text-blue-700 text-sm font-bold uppercase pb-4">Technology</a>
+                <a class="text-blue-700 text-sm font-bold uppercase pb-4">Technology</a>
                 <div class="flex items-center">
                     <img src="/assets/icons/spring_boot.png" class="h-10 object-cover rounded-full px-3" alt="">
                     <img src="/assets/icons/soapui.png" class="h-10 object-cover rounded-full px-3" alt="">
@@ -52,7 +52,7 @@
                 
                 </p>
                 <h1 class="text-2xl font-bold pb-3">1.	Generating Java stubs based on WSDL</h1>
-                <p class="pb-3">Considering that we have a WSDL, I’ll use it as a guide to understand some of the service offerings and generate code for the client application. We’ll do it through SOAP UI and Maven plugin. In here we can acutally see all the services they have, quite a lot. These is, at least for me same thing like Swagger, but only with XML.
+                <p class="pb-3">Considering that we have a <a href="https://clienttesthorizon.horizonafs.com/AFSServices/AFSService.svc?wsdl" target="_blank"><u>WSDL</u></a>, I’ll use it as a guide to understand some of the service offerings and generate code for the client application. We’ll do it through SOAP UI and Maven plugin. In here we can acutally see all the services they have, quite a lot. These is, at least for me same thing like Swagger, but only with XML.
                     <img src="/assets/soap-services/Arvato1.png" class="py-4" alt="">
                     First we generate xsd files based on WSDL, so the Maven plugin can be able to generate Java stubs which third party can take as well as Object factory and method services which can be invoked.
                     <img src="/assets/soap-services/Arvato2.png" class="py-4" alt="">
@@ -68,8 +68,7 @@
                     <br>
                     <br>I did my research and what people are doing something called binding (<a href="https://docs.oracle.com/javase/tutorial/jaxb/intro/custom.html" target="_blank"><u>docs</u></a>). Essentially, it is possible to change the naming of a method, data type etc.
                     
-                    The issue is mainly due to XJC having trouble with AccountInfo and AFSInvoiceAccountInfo
-                    When schemas contain similar looking element/type names, they can result in "Two declarations cause a collision in the ObjectFactory class" errors. To be more precise, for each of all types and many elements (exactly what elements get a factory and what doesn't is bit tricky to explain), XJC produces one method on the ObjectFactory class in the same package. The ObjectFactory class is created for each package that XJC generates some files into. The name of the method is derived from XML element/type names, and the error is reported if two elements/types try to generate the same method name.
+                    The issue is mainly due to XJC having trouble with AccountInfo and AFSInvoiceAccountInfo. When schemas contain similar looking element/type names, they can result in "Two declarations cause a collision in the ObjectFactory class" errors. To be more precise, for each of all types and many elements (exactly what elements get a factory and what doesn't is bit tricky to explain), XJC produces one method on the ObjectFactory class in the same package. The ObjectFactory class is created for each package that XJC generates some files into. The name of the method is derived from XML element/type names, and the error is reported if two elements/types try to generate the same method name.
                     <br>
                     <br>
                     We need the following bindings.xjb (this was a bit tricky to write, lots of tries and errors) file in src/main/resources (will be picked up automatically by the maven-xjb2-plugin):
